@@ -61,7 +61,7 @@ class Iseed
      * @return bool
      * @throws Orangehill\Iseed\TableNotFoundException
      */
-    public function generateSeed($table, $prefix=null, $suffix=null, $database = null, $max = 0, $chunkSize = 0, $exclude = null, $prerunEvent = null, $postrunEvent = null, $dumpAuto = true, $indexed = true, $orderBy = null, $direction = 'ASC')
+    public function generateSeed($table, $prefix=null, $suffix=null, $database = null, $max = 0, $chunkSize = 0, $exclude = null, $prerunEvent = null, $postrunEvent = null, $dumpAuto = true, $indexed = true, $orderBy = null, $direction = 'ASC', $enableDisabledForeignChecks = false)
     {
         if (!$database) {
             $database = config('database.default');
@@ -101,7 +101,8 @@ class Iseed
             $chunkSize,
             $prerunEvent,
             $postrunEvent,
-            $indexed
+            $indexed,
+            $enableDisabledForeignChecks
         );
 
         // Save a populated stub
@@ -220,7 +221,7 @@ class Iseed
      * @param  string   $postunEvent
      * @return string
      */
-    public function populateStub($class, $stub, $table, $data, $chunkSize = null, $prerunEvent = null, $postrunEvent = null, $indexed = true)
+    public function populateStub($class, $stub, $table, $data, $chunkSize = null, $prerunEvent = null, $postrunEvent = null, $indexed = true, $enableDisabledForeignChecks = false)
     {
         $chunkSize = $chunkSize ?: config('iseed::config.chunk_size');
 
@@ -279,6 +280,9 @@ class Iseed
         );
 
         $stub = str_replace('{{insert_statements}}', $inserts, $stub);
+
+        $stub = str_replace('{{disableForeignKeysChecks}}', $this->disabledForeignKeyChecks($enableForeignKeyChecks, $table), $stub);
+        $stub = str_replace('{{enableForeignKeyChecks}}', $this->enableForeignKeyChecks($enableForeignKeyChecks, $table), $stub);
 
         return $stub;
     }
@@ -413,5 +417,15 @@ class Iseed
         }
 
         return $this->files->put($databaseSeederPath, $content) !== false;
+    }
+
+    public function disabledForeignKeyChecks(bool $disable, string $table) :string{
+        if(!$disable) return '';
+        return '\DB::statement("Set FOREIGN_KEY_CHECKS = 0")';
+    }
+
+    public function enableForeignKeyChecks(bool $enable, string $table) :string{
+        if(!$enable) return '';
+        return '\DB::statement("Set FOREIGN_KEY_CHECKS = 1")';
     }
 }

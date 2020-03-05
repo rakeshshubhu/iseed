@@ -13,8 +13,10 @@ class {{class}} extends Seeder
     public function run()
     {
         {{prerun_event}}
-
+        {{disableForeignKeysChecks}}
         \DB::table('{{table}}')->delete();
+        {{enableForeignKeyChecks}}
+
         {{insert_statements}}
         
         {{postrun_event}}
